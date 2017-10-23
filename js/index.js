@@ -1,16 +1,26 @@
 $(document).ready(function () {
-    //判断横竖屏
     document.querySelector('body').addEventListener('touchmove', function(e) {
         e.preventDefault();
     });
+    //阻止滑动冒泡
+    var floatingWindow=document.getElementsByClassName('floating-window');
+    for(var i=0;i<floatingWindow.length;i++){
+        floatingWindow[i].addEventListener('touchmove',function (e) {
+            e.stopPropagation()
+        },false)
+    }
+    //判断横竖屏
     window.addEventListener("onorientationchange" in window ? "orientationchange" : "resize", orientationfn, false);
     orientationfn();
 
+    //loading
     setTimeout(function () {
         $('.loading').hide();
         $('.container').show();
         $('.container').addClass('fadeIn')
-    },2200);
+    },2000);
+
+    //滑动提示遮罩
     setTimeout(function () {
         $('.shade-swipe').show();
         $('.shade-swipe').addClass('fadeIn')
@@ -34,11 +44,12 @@ $(document).ready(function () {
     var currentAngle = null;
     var initAngle = null;
     home[0].addEventListener('touchmove', function (ev) {
+        ev.preventDefault();
         var currentX, currentY;
         currentX = ev.changedTouches[0].pageX;
         currentY = ev.changedTouches[0].pageY;
         var direction = GetSlideDirection(startX, startY, currentX, currentY);
-        var distance = startX - currentX;
+        var distance = startY - currentY;
         var angle = distance / 5;
 
         //每次都恢复上次 touchend时的角度
@@ -46,37 +57,43 @@ $(document).ready(function () {
         currentAngle += angle;
         // 超出的角度禁止滑动
         if (currentAngle >= 48) {
-            e.preventDefault();
+            ev.preventDefault();
             currentAngle = 48
         }
         else if (currentAngle < -48) {
-            e.preventDefault();
+            ev.preventDefault();
             currentAngle = -48
         }
 
-        if (direction == 3) {
+        if (direction == 1) {
             $('.earch').css({
                 'transform': 'rotate(' + currentAngle + 'deg)',
                 '-webkit-transform': 'rotate(' + currentAngle + 'deg)'
             });
+            $('.car').css({
+                'transform': 'rotate3d(0,1,0,190deg)'
+            })
         }
-        if (direction == 4) {
+        if (direction == 2) {
             $('.earch').css({
                 'transform': 'rotate(' + currentAngle + 'deg)',
                 '-webkit-transform': 'rotate(' + currentAngle + 'deg)'
+            });
+            $('.car').css({
+                'transform': 'rotate3d(0,1,0,0deg)'
             })
         }
     }, false);
 
     home[0].addEventListener('touchend', function (ev) {
         if (currentAngle >= 30) {
-            initAngle = 48;
+            initAngle = 45;
             $('.earch').css({'transform': 'rotate(48deg)', '-webkit-transform': 'rotate(48deg)'});
 
             $('.flag-model').show();
             $('.flag-model').addClass('bounceIn');
 
-            $('.container .building').css({'top': '21%'});
+            $('.container .building').css({'top': '41%'});
             $('.buildingA').show();
             $('.buildingA').addClass('scale');
         }
@@ -87,18 +104,18 @@ $(document).ready(function () {
             $('.flag-sales').show();
             $('.flag-sales').addClass('bounceIn');
 
-            $('.container .building').css({'top': '23%'});
+            $('.container .building').css({'top': '42%'});
             $('.buildingB').show();
             $('.buildingB').addClass('scale');
         }
         else if (currentAngle <= -30) {
-            initAngle = -48;
+            initAngle = -45;
             $('.earch').css({'transform': 'rotate(-48deg)', '-webkit-transform': 'rotate(-48deg)'});
 
             $('.flag-location').show();
             $('.flag-location').addClass('bounceIn');
 
-            $('.container .building').css({'top': '10%'});
+            $('.container .building').css({'top': '35%'});
             $('.buildingC').show();
             $('.buildingC').addClass('scale');
         }
@@ -109,7 +126,7 @@ $(document).ready(function () {
             $('.flag-sales').show();
             $('.flag-sales').addClass('bounceIn');
 
-            $('.container .building').css({'top': '23%'});
+            $('.container .building').css({'top': '42%'});
             $('.buildingB').show();
             $('.buildingB').addClass('scale');
         }
@@ -128,22 +145,21 @@ $(document).ready(function () {
                 var parent = $('.sales-netWork .swiper-container .swiper-wrapper');
                 parent.empty();
                 res.data.forEach(function (val, index) {
-                    console.log(index)
                     var children = "<div class='swiper-slide'><input type='hidden' name='id' data-id=" + res.data[index].id + ">" + res.data[index].shop_name + "</div>";
                     parent.append(children);
                     $('.sales-netWork').show();
                     var mySwiper = new Swiper('.swiper-container', {
+                        loop:true,
                         direction: 'horizontal',
                         speed: 800,
                         slidesPerView: 5,
                         paginationClickable: true,
                         spaceBetween: 5,
-                        autoplay: 1500
+                        autoplay: 1200,
                     });
                 });
                 $('.swiper-slide').on('click', function () {
                     var id = $(this).children("input[name='id']").data('id');
-                    console.log(id);
                     $.ajax({
                         url: 'http://192.168.0.189/repos/net_sindcorp_store/web/peixiao/default/detail?id=' + id,
                         type: 'GET',
@@ -164,8 +180,10 @@ $(document).ready(function () {
         })
     });
 
-    //点击某一配销公司跳转到search
-
+    //设置页面宽高
+    var width=$('body').width();
+    var height=$('body').height();
+    $('.floating-window').css({'width':height,'height':width,'top':(height-width)/2+'px','left':-(height-width)/2+'px'});
 
     //营销模式
     $('.buildingA').on('click',function () {
@@ -192,10 +210,17 @@ $(document).ready(function () {
                 success:function (res) {
                     var parent = $('.search .content');
                     parent.empty();
-                    res.data.forEach(function (val, index) {
-                        var children = "<div class='box'><h3>" + res.data[index].shop_name + "</h3><p>所在地址:" + res.data[index].address + "</p><p>联系电话:" + res.data[index].telephone + "</p><p>配销区域:" + res.data[index].region + "</p></div>"
+                    if(res.data.length>1) {
+                        $('.search .content ').height('50%');
+                        res.data.forEach(function (val, index) {
+                            var children = "<div class='box'><h3>" + res.data[index].shop_name + "</h3><p>所在地址:" + res.data[index].address + "</p><p>联系电话:" + res.data[index].telephone + "</p><p>配销区域:" + res.data[index].region + "</p></div>"
+                            parent.append(children);
+                        });
+                    }
+                    else {
+                        var children = "<div class='box'><h3>" + res.data[0].shop_name + "</h3><p>所在地址:" + res.data[0].address + "</p><p>联系电话:" + res.data[0].telephone + "</p><p>配销区域:" + res.data[0].region + "</p></div>"
                         parent.append(children);
-                    });
+                    }
                 }
             })
         });
@@ -204,7 +229,9 @@ $(document).ready(function () {
 
     // 隐藏悬浮窗
     $('.icon-close').on('click', function () {
-        $(this).parent('.floating-window').hide()
+        $(this).parent('.floating-window').hide();
+        $("input[name='province']").val('');
+        $('.search .content ').height("auto");
     });
 
 });
@@ -213,11 +240,8 @@ function orientationfn() {
     setTimeout(function () {
         var html = document.documentElement;
         var w = html.clientWidth, h = html.clientHeight;
-        if (h > w) {
-            // alert('横屏显示效果展示更好哦!')
-            // $('body').css({'transform': 'rotate(90deg)'});
-            // $('.loading,.container').css({'transform': 'rotate(90deg)'});
-            // $('.shade-swipe').css({'transform': 'rotate(-90deg)'});
+        if (h < w) {
+            alert('锁定竖屏显示效果更好yo~');
         }
     }, 300);
 }
@@ -245,8 +269,7 @@ function GetSlideDirection(startX, startY, endX, endY) {
         result = 1;
     } else if (angle >= -135 && angle < -45) {
         result = 2;
-    }
-    else if ((angle >= 135 && angle <= 180) || (angle >= -180 && angle < -135)) {
+    }else if ((angle >= 135 && angle <= 180) || (angle >= -180 && angle < -135)) {
         result = 3;
     }
     return result;
