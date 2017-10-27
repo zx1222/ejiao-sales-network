@@ -1,13 +1,13 @@
 $(document).ready(function () {
-    document.querySelector('body').addEventListener('touchmove', function(e) {
+    document.querySelector('body').addEventListener('touchmove', function (e) {
         e.preventDefault();
     });
     //阻止滑动冒泡
-    var floatingWindow=document.getElementsByClassName('floating-window');
-    for(var i=0;i<floatingWindow.length;i++){
-        floatingWindow[i].addEventListener('touchmove',function (e) {
+    var floatingWindow = document.getElementsByClassName('floating-window');
+    for (var i = 0; i < floatingWindow.length; i++) {
+        floatingWindow[i].addEventListener('touchmove', function (e) {
             e.stopPropagation()
-        },false)
+        }, false)
     }
     //判断横竖屏
     window.addEventListener("onorientationchange" in window ? "orientationchange" : "resize", orientationfn, false);
@@ -18,20 +18,22 @@ $(document).ready(function () {
         $('.loading').hide();
         $('.container').show();
         $('.container').addClass('fadeIn')
-    },2000);
+    }, 2000);
 
     //滑动提示遮罩
     setTimeout(function () {
         $('.shade-swipe').show();
         $('.shade-swipe').addClass('fadeIn')
-    },1000);
-    var shade=document.getElementsByClassName('shade-swipe');
-    shade[0].addEventListener('touchstart',function () {
+    }, 1000);
+    var shade = document.getElementsByClassName('shade-swipe');
+    shade[0].addEventListener('touchstart', function () {
         $('.shade-swipe').hide();
-    },false);
+    }, false);
 
     //滑动处理
     var startX, startY;
+    var currentAngle = null;
+    initAngle = null;
     var home = document.getElementsByClassName('home');
     home[0].addEventListener('touchstart', function (ev) {
         startX = ev.touches[0].pageX;
@@ -41,8 +43,7 @@ $(document).ready(function () {
         $('.building').removeClass('scale');
         $('.building').hide();
     }, false);
-    var currentAngle = null;
-    var initAngle = null;
+
     home[0].addEventListener('touchmove', function (ev) {
         ev.preventDefault();
         var currentX, currentY;
@@ -55,15 +56,7 @@ $(document).ready(function () {
         //每次都恢复上次 touchend时的角度
         currentAngle = initAngle;
         currentAngle += angle;
-        // 超出的角度禁止滑动
-        if (currentAngle >= 48) {
-            ev.preventDefault();
-            currentAngle = 48
-        }
-        else if (currentAngle < -48) {
-            ev.preventDefault();
-            currentAngle = -48
-        }
+
 
         if (direction == 1) {
             $('.earch').css({
@@ -86,49 +79,25 @@ $(document).ready(function () {
     }, false);
 
     home[0].addEventListener('touchend', function (ev) {
-        if (currentAngle >= 30) {
-            initAngle = 45;
-            $('.earch').css({'transform': 'rotate(48deg)', '-webkit-transform': 'rotate(48deg)'});
-
-            $('.flag-model').show();
-            $('.flag-model').addClass('bounceIn');
-
-            $('.container .building').css({'top': '41%'});
-            $('.buildingA').show();
-            $('.buildingA').addClass('scale');
+        if (currentAngle%40 >= 30) {
+            initAngle =(~~(currentAngle/40)+1)*40;
+            $('.earch').css({"transform": "rotate("+initAngle+"deg)", "-webkit-transform": "rotate("+initAngle+"deg)"});
+            clockwise();
         }
-        else if (currentAngle >= 0 && currentAngle < 30) {
-            initAngle = 0;
-            $('.earch').css({'transform': 'rotate(0deg)', '-webkit-transform': 'rotate(0deg)'});
-
-            $('.flag-sales').show();
-            $('.flag-sales').addClass('bounceIn');
-
-            $('.container .building').css({'top': '42%'});
-            $('.buildingB').show();
-            $('.buildingB').addClass('scale');
+        else if(currentAngle>=0&&currentAngle%40 <= 30){
+            initAngle =(~~(currentAngle/40))*40;
+            $('.earch').css({"transform": "rotate("+initAngle+"deg)", "-webkit-transform": "rotate("+initAngle+"deg)"});
+            clockwise();
         }
-        else if (currentAngle <= -30) {
-            initAngle = -45;
-            $('.earch').css({'transform': 'rotate(-48deg)', '-webkit-transform': 'rotate(-48deg)'});
-
-            $('.flag-location').show();
-            $('.flag-location').addClass('bounceIn');
-
-            $('.container .building').css({'top': '35%'});
-            $('.buildingC').show();
-            $('.buildingC').addClass('scale');
+        else if(currentAngle%40 <= -30){
+            initAngle =(~~(currentAngle/40)-1)*40;
+            $('.earch').css({"transform": "rotate("+initAngle+"deg)", "-webkit-transform": "rotate("+initAngle+"deg)"});
+            counterclockwise();
         }
-        else if (currentAngle < 0 && currentAngle > -30) {
-            initAngle = 0;
-            $('.earch').css({'transform': 'rotate(0deg)', '-webkit-transform': 'rotate(0deg)'});
-
-            $('.flag-sales').show();
-            $('.flag-sales').addClass('bounceIn');
-
-            $('.container .building').css({'top': '42%'});
-            $('.buildingB').show();
-            $('.buildingB').addClass('scale');
+        else if(currentAngle<0&&currentAngle%40 >= -30){
+            initAngle =(~~(currentAngle/40))*40;
+            $('.earch').css({"transform": "rotate("+initAngle+"deg)", "-webkit-transform": "rotate("+initAngle+"deg)"});
+            counterclockwise();
         }
     }, false);
 
@@ -141,7 +110,7 @@ $(document).ready(function () {
             jsonp: "callback",
             dataType: 'jsonp',
             success: function (res) {
-                $('.sales-netWork .header h2').text(+res.data.length+'家配销公司');
+                $('.sales-netWork .header h2').text(+res.data.length + '家配销公司');
                 var parent = $('.sales-netWork .swiper-container .swiper-wrapper');
                 parent.empty();
                 res.data.forEach(function (val, index) {
@@ -149,7 +118,7 @@ $(document).ready(function () {
                     parent.append(children);
                     $('.sales-netWork').show();
                     var mySwiper = new Swiper('.swiper-container', {
-                        loop:true,
+                        loop: true,
                         direction: 'horizontal',
                         speed: 800,
                         slidesPerView: 5,
@@ -181,36 +150,41 @@ $(document).ready(function () {
     });
 
     //设置页面宽高
-    var width=$('body').width();
-    var height=$('body').height();
-    $('.floating-window').css({'width':height,'height':width,'top':(height-width)/2+'px','left':-(height-width)/2+'px'});
+    var width = $('body').width();
+    var height = $('body').height();
+    $('.floating-window').css({
+        'width': height,
+        'height': width,
+        'top': (height - width) / 2 + 'px',
+        'left': -(height - width) / 2 + 'px'
+    });
 
     //营销模式
-    $('.buildingA').on('click',function () {
+    $('.buildingA').on('click', function () {
         $('.floating-window').hide();
         $('.sales-model').show();
         $('.sales-model').addClass('fadeIn')
     });
 
     //搜索
-    $('.buildingC').on('click',function () {
+    $('.buildingC').on('click', function () {
         $('.floating-window').hide();
         var parent = $('.search .content');
         parent.empty();
         $('.search').show();
         $('.search').addClass('fadeIn');
 
-        $("input[name='submit']").on('click',function () {
-            var keywords=$("input[name='province']").val();
+        $("input[name='submit']").on('click', function () {
+            var keywords = $("input[name='province']").val();
             $.ajax({
-                url:'http://192.168.0.189/repos/net_sindcorp_store/web/peixiao?keywords='+keywords,
+                url: 'http://192.168.0.189/repos/net_sindcorp_store/web/peixiao?keywords=' + keywords,
                 type: 'GET',
                 jsonp: "callback",
                 dataType: 'jsonp',
-                success:function (res) {
+                success: function (res) {
                     var parent = $('.search .content');
                     parent.empty();
-                    if(res.data.length>1) {
+                    if (res.data.length > 1) {
                         $('.search .content ').height('50%');
                         res.data.forEach(function (val, index) {
                             var children = "<div class='box'><h3>" + res.data[index].shop_name + "</h3><p>所在地址:" + res.data[index].address + "</p><p>联系电话:" + res.data[index].telephone + "</p><p>配销区域:" + res.data[index].region + "</p></div>"
@@ -269,8 +243,68 @@ function GetSlideDirection(startX, startY, endX, endY) {
         result = 1;
     } else if (angle >= -135 && angle < -45) {
         result = 2;
-    }else if ((angle >= 135 && angle <= 180) || (angle >= -180 && angle < -135)) {
+    } else if ((angle >= 135 && angle <= 180) || (angle >= -180 && angle < -135)) {
         result = 3;
     }
     return result;
+}
+
+function clockwise() {
+    //旋转到全国配销网络
+    if(((initAngle/40)%3)==0){
+        $('.flag-sales').show();
+        $('.flag-sales').addClass('bounceIn');
+
+        $('.container .building').css({'top': '42%'});
+        $('.buildingB').show();
+        $('.buildingB').addClass('scale');
+    }
+    //旋转到营销模式
+    if(((initAngle/40)%3)==1){
+        $('.flag-model').show();
+        $('.flag-model').addClass('bounceIn');
+
+        $('.container .building').css({'top': '36%'});
+        $('.buildingC').show();
+        $('.buildingC').addClass('scale');
+    }
+    //旋转到查询配销区域
+    if(((initAngle/40)%3)==2){
+        $('.flag-location').show();
+        $('.flag-location').addClass('bounceIn');
+
+        $('.container .building').css({'top': '40%'});
+        $('.buildingA').show();
+        $('.buildingA').addClass('scale');
+    }
+}
+
+function counterclockwise() {
+    //旋转到全国配销网络
+    if(((initAngle/40)%3)==0){
+        $('.flag-sales').show();
+        $('.flag-sales').addClass('bounceIn');
+
+        $('.container .building').css({'top': '42%'});
+        $('.buildingB').show();
+        $('.buildingB').addClass('scale');
+    }
+    //旋转到营销模式
+    if(((initAngle/40)%3)==-1){
+        $('.flag-location').show();
+        $('.flag-location').addClass('bounceIn');
+
+        $('.container .building').css({'top': '40%'});
+        $('.buildingA').show();
+        $('.buildingA').addClass('scale');
+    }
+    //旋转到查询配销区域
+    if(((initAngle/40)%3)==-2){
+        $('.flag-model').show();
+        $('.flag-model').addClass('bounceIn');
+
+        $('.container .building').css({'top': '36%'});
+        $('.buildingC').show();
+        $('.buildingC').addClass('scale');
+    }
 }
